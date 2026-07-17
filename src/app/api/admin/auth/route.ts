@@ -4,8 +4,9 @@ import { cookies } from "next/headers";
 export async function POST(request: Request) {
   try {
     const { password } = await request.json();
+    const correctPassword = process.env.ADMIN_PASSWORD || "14709000";
 
-    if (password === process.env.ADMIN_PASSWORD) {
+    if (password === correctPassword) {
       const cookieStore = await cookies();
       cookieStore.set("admin_token", "authenticated", {
         httpOnly: true,
