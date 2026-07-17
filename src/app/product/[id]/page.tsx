@@ -24,7 +24,6 @@ export default function ProductDetail({
   const [isExporting, setIsExporting] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch product and related products from Supabase
@@ -122,29 +121,7 @@ export default function ProductDetail({
     carouselRef.current.scrollTo({ left: slideWidth * index, behavior: "smooth" });
   };
 
-  const handleSave = async () => {
-    if (!captureRef.current || !product) return;
-    try {
-      setIsExporting(true);
-      const canvas = await html2canvas(captureRef.current, {
-        useCORS: true,
-        scale: 2,
-        backgroundColor: "#f8f9fa",
-      });
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-      const link = document.createElement("a");
-      link.download = `${product.name}.jpg`;
-      link.href = dataUrl;
-      link.click();
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2000);
-    } catch (err) {
-      console.error("Failed to save image", err);
-      alert("ไม่สามารถบันทึกรูปภาพได้");
-    } finally {
-      setIsExporting(false);
-    }
-  };
+
 
   const handleCopy = async () => {
     if (!captureRef.current || !product) return;
@@ -412,40 +389,25 @@ export default function ProductDetail({
             </p>
           </div>
 
-          {/* Action Buttons (Copy/Save) */}
-          <div data-html2canvas-ignore="true" className="mt-stack-lg flex gap-3 border-t border-outline-variant pt-stack-lg">
+          {/* Action Buttons (Copy) */}
+          <div data-html2canvas-ignore="true" className="mt-stack-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-outline-variant pt-stack-lg">
+            <p className="text-on-surface-variant text-sm font-semibold flex items-center gap-1.5 py-1">
+              <span className="material-symbols-outlined text-[20px] text-primary">info</span>
+              สนใจซื้อ คัดลอกภาพ เพื่อสอบถามข้อมูลเพิ่มเติม
+            </p>
             <button
               onClick={handleCopy}
               disabled={isExporting}
-              className={`flex-1 h-12 flex items-center justify-center gap-2 rounded-full border font-bold text-body-md active:scale-95 transition-all disabled:opacity-50 ${
+              className={`w-full sm:w-auto h-12 px-6 flex items-center justify-center gap-2 rounded-full font-bold text-body-md active:scale-95 transition-all disabled:opacity-50 shrink-0 ${
                 copySuccess
-                  ? "border-primary bg-secondary-container text-on-secondary-container"
-                  : "border-primary text-primary hover:bg-primary/5"
+                  ? "bg-secondary-container text-on-secondary-container"
+                  : "bg-primary text-on-primary hover:shadow-lg"
               }`}
             >
               <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
                 {copySuccess ? "check_circle" : "content_copy"}
               </span>
               {isExporting ? "กำลังประมวลผล..." : copySuccess ? "คัดลอกแล้ว!" : "คัดลอกภาพ"}
-            </button>
-
-            <button
-              onClick={handleSave}
-              disabled={isExporting}
-              className={`flex-1 h-12 flex items-center justify-center gap-2 rounded-full font-bold text-body-md active:scale-95 transition-all disabled:opacity-50 ${
-                saveSuccess
-                  ? "bg-secondary-container text-on-secondary-container"
-                  : "bg-primary text-on-primary hover:shadow-lg"
-              }`}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
-                {saveSuccess ? "check_circle" : "download"}
-              </span>
-              {isExporting
-                ? "กำลังประมวลผล..."
-                : saveSuccess
-                ? "บันทึกสำเร็จ!"
-                : "บันทึกรูปภาพ"}
             </button>
           </div>
         </div>
