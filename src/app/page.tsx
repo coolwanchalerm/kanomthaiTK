@@ -150,7 +150,7 @@ function HomeContent() {
         {/* Budget Filter */}
         <section className="mt-stack-md">
           <h2 className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-3">
-            งบประมาณ / Budget
+            เลือกตามราคา
           </h2>
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-container-padding px-container-padding">
             {budgetRanges.map((budget) => (

@@ -459,7 +459,7 @@ export default function ProductDetail({
               <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>
                 grid_view
               </span>
-              สินค้าที่เกี่ยวข้อง / Related
+              รายการที่คุณอาจชอบ
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {relatedProducts.map((rp) => (
