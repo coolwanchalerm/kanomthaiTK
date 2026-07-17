@@ -64,6 +64,11 @@ export default function AdminDashboard() {
     slug: "",
   });
 
+  // Delete Confirmation States
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: "product" | "category"; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Verify Admin Session
   useEffect(() => {
     async function checkAuth() {
@@ -206,21 +211,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleProductDelete = async (id: string) => {
-    if (!confirm("คุณแน่ใจว่าต้องการลบสินค้านี้ใช่หรือไม่?")) return;
-    try {
-      const { error } = await supabase
-        .from("productWeb")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-      fetchData();
-    } catch (err) {
-      alert("ไม่สามารถลบสินค้าได้");
-      console.error(err);
-    }
-  };
-
   // --- Category CRUD ---
   const openCategoryAdd = () => {
     setEditingCategory(null);
@@ -257,18 +247,42 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleCategoryDelete = async (id: string) => {
-    if (!confirm("การลบหมวดหมู่จะทำให้สินค้าทั้งหมดที่ผูกอยู่ถูกลบไปด้วย คุณแน่ใจใช่หรือไม่?")) return;
+  // --- Delete confirmation triggers ---
+  const confirmDeleteProduct = (id: string, name: string) => {
+    setDeleteTarget({ id, type: "product", name });
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteCategory = (id: string, name: string) => {
+    setDeleteTarget({ id, type: "category", name });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      const { error } = await supabase
-        .from("categories")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
+      setDeleting(true);
+      if (deleteTarget.type === "product") {
+        const { error } = await supabase
+          .from("productWeb")
+          .delete()
+          .eq("id", deleteTarget.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("categories")
+          .delete()
+          .eq("id", deleteTarget.id);
+        if (error) throw error;
+      }
+      setDeleteConfirmOpen(false);
+      setDeleteTarget(null);
       fetchData();
-    } catch (err) {
-      alert("ไม่สามารถลบหมวดหมู่ได้");
+    } catch (err: any) {
+      alert(`ไม่สามารถลบ${deleteTarget.type === "product" ? "สินค้า" : "หมวดหมู่"}ได้: ${err.message || err.details || "ไม่ทราบสาเหตุ"}`);
       console.error(err);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -485,7 +499,7 @@ export default function AdminDashboard() {
                             แก้ไข
                           </button>
                           <button
-                            onClick={() => handleProductDelete(p.id)}
+                            onClick={() => confirmDeleteProduct(p.id, p.name)}
                             className="h-9 px-4 rounded-full bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs flex items-center gap-1 transition-all active:scale-95"
                           >
                             <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -568,7 +582,7 @@ export default function AdminDashboard() {
                                   <span className="material-symbols-outlined text-[20px]">edit</span>
                                 </button>
                                 <button
-                                  onClick={() => handleCategoryDelete(c.id)}
+                                  onClick={() => confirmDeleteCategory(c.id, c.name)}
                                   className="w-9 h-9 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-all active:scale-90"
                                   title="ลบ"
                                 >
@@ -811,6 +825,62 @@ https://images.unsplash.com/..."
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. DELETE CONFIRMATION MODAL */}
+      {deleteConfirmOpen && deleteTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-surface border border-outline-variant w-full max-w-sm rounded-2xl shadow-xl overflow-hidden flex flex-col p-6 animate-scale-in text-center text-body-md">
+            {/* Warning icon */}
+            <div className="mx-auto w-16 h-16 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-3xl">warning</span>
+            </div>
+            
+            <h3 className="font-bold text-headline-sm text-on-surface mb-2">
+              ยืนยันการลบข้อมูล
+            </h3>
+            
+            <p className="text-on-surface-variant mb-6 text-sm">
+              {deleteTarget.type === "product" ? (
+                <>คุณต้องการลบสินค้า <strong>&quot;{deleteTarget.name}&quot;</strong> ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้</>
+              ) : (
+                <>การลบหมวดหมู่ <strong>&quot;{deleteTarget.name}&quot;</strong> จะทำให้สินค้าทั้งหมดที่อยู่ในหมวดหมู่นี้ถูกลบออกไปด้วย คุณแน่ใจใช่หรือไม่?</>
+              )}
+            </p>
+
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deleting}
+                className="h-10 px-5 rounded-full border border-outline-variant hover:bg-surface-container-high font-bold text-sm transition-all"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="h-10 px-5 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>กำลังลบ...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                    <span>ลบข้อมูล</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
