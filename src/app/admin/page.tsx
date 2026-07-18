@@ -889,16 +889,26 @@ https://images.unsplash.com/..."
                         setShowDescAutocomplete(unique.length > 0);
                       }}
                       onBlur={() => setTimeout(() => setShowDescAutocomplete(false), 150)}
+                      onKeyDown={(e) => { if (e.key === "Escape") setShowDescAutocomplete(false); }}
                       className="w-full p-3.5 rounded-lg border border-outline-variant focus:border-primary focus:outline-none resize-none"
                       placeholder="เขียนรายละเอียด หรือเลือกจากสินค้าที่มีในระบบ..."
                     />
 
-                    {/* Description Autocomplete Dropdown */}
+                    {/* Description Autocomplete Dropdown — opens UPWARD to avoid covering the save button */}
                     {showDescAutocomplete && descAutocomplete.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg z-50 overflow-hidden max-h-52 overflow-y-auto">
-                        <div className="px-3.5 py-2 text-[10px] text-on-surface-variant font-semibold uppercase tracking-wider border-b border-outline-variant bg-surface-container-low flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-[14px]">history</span>
-                          รายละเอียดจากสินค้าในระบบ
+                      <div className="absolute bottom-full left-0 right-0 mb-1 bg-surface border border-outline-variant rounded-xl shadow-lg z-50 overflow-hidden max-h-48 overflow-y-auto">
+                        <div className="px-3.5 py-2 text-[10px] text-on-surface-variant font-semibold uppercase tracking-wider border-b border-outline-variant bg-surface-container-low flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[14px]">history</span>
+                            รายละเอียดจากสินค้าในระบบ
+                          </div>
+                          <button
+                            type="button"
+                            onMouseDown={() => setShowDescAutocomplete(false)}
+                            className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-surface-container-high"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">close</span>
+                          </button>
                         </div>
                         {descAutocomplete.map((desc, idx) => (
                           <button
