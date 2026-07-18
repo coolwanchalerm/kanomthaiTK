@@ -437,10 +437,10 @@ export default function ProductDetail({
               <div className="flex gap-3 w-full sm:w-auto sm:flex-1">
                 {/* Messenger Button */}
                 <Link
-                  href="#"
+                  href="https://m.me/581266128401855"
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="flex-1 h-12 flex items-center justify-center gap-2 rounded-full font-bold text-white text-sm bg-[#0084FF] hover:bg-[#0074E4] hover:shadow-lg active:scale-95 transition-all"
-                  onClick={(e) => { e.preventDefault(); alert("รอใส่ลิงก์ Facebook Messenger"); }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2C6.477 2 2 6.145 2 11.258c0 2.9 1.455 5.485 3.738 7.155.239.176.386.452.4.747l.088 2.378c.026.697.801 1.104 1.394.733l2.67-1.671a1.01 1.01 0 0 1 .803-.105 10.456 10.456 0 0 0 .907.039c5.523 0 10-4.145 10-9.258C22 6.145 17.523 2 12 2zm1.093 11.196l-2.482-2.656a.79.79 0 0 0-1.124-.047l-3.235 2.915c-.454.409.197 1.077.683.659l2.48-2.657a.792.792 0 0 1 1.125.048l3.235 2.914c.454.409-.197-1.077-.682-.658z"/>
