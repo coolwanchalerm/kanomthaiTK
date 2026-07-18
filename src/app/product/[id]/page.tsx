@@ -285,6 +285,7 @@ export default function ProductDetail({
               <div
                 ref={carouselRef}
                 className="flex w-full h-full overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
+                style={{ touchAction: "pan-x" }}
               >
                 {product.images.map((img, idx) => (
                   <div

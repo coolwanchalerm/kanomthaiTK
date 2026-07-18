@@ -46,7 +46,15 @@ function BottomNavBarContent({ currentCategory }: BottomNavBarProps) {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full z-[9999] bg-surface dark:bg-surface-container-lowest border-t border-outline-variant shadow-sm px-gutter py-stack-sm pb-safe flex items-center" style={{ pointerEvents: "auto" }}>
+    <nav
+      className="fixed bottom-0 left-0 w-full z-[9999] bg-surface dark:bg-surface-container-lowest border-t border-outline-variant shadow-sm px-gutter py-stack-sm pb-safe flex items-center"
+      style={{
+        pointerEvents: "auto",
+        willChange: "transform",
+        transform: "translateZ(0)",
+        WebkitTransform: "translateZ(0)",
+      }}
+    >
       <div className="flex w-full overflow-x-auto no-scrollbar justify-around items-center gap-2">
         {categories.length > 0 ? (
           categories.map((cat) => (
