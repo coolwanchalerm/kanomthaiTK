@@ -276,8 +276,8 @@ export default function ProductDetail({
         </form>
       </div>
 
-      {/* Capturable Content Area */}
-      <div ref={captureRef}>
+      {/* Capturable Content Area - isolation:isolate prevents stacking context leaks from html2canvas */}
+      <div ref={captureRef} className="relative" style={{ isolation: "isolate" }}>
         {/* Image Carousel */}
         <div className="relative w-full max-w-[1100px] mx-auto">
           <div className="relative aspect-[4/3] bg-surface-container-highest overflow-hidden md:rounded-b-2xl">
