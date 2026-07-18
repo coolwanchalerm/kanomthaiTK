@@ -100,6 +100,9 @@ export default function AdminDashboard() {
   const [nameAutocomplete, setNameAutocomplete] = useState<string[]>([]);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const autocompleteRef = useRef<HTMLDivElement>(null);
+  const [descAutocomplete, setDescAutocomplete] = useState<string[]>([]);
+  const [showDescAutocomplete, setShowDescAutocomplete] = useState(false);
+  const descAutocompleteRef = useRef<HTMLDivElement>(null);
 
   const [productForm, setProductForm] = useState({
     name: "",
@@ -846,13 +849,79 @@ https://images.unsplash.com/..."
 
                 <div className="col-span-2">
                   <label className="block text-label-md font-bold mb-1">รายละเอียดสินค้า</label>
-                  <textarea
-                    rows={3}
-                    value={productForm.description}
-                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                    className="w-full p-3.5 rounded-lg border border-outline-variant focus:border-primary focus:outline-none"
-                    placeholder="เขียนบรรยายสรรพคุณสินค้า หรือส่วนผสม..."
-                  />
+                  <div className="relative" ref={descAutocompleteRef}>
+                    <textarea
+                      rows={3}
+                      value={productForm.description}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProductForm({ ...productForm, description: val });
+                        // Filter from existing product descriptions
+                        const existing = products
+                          .map((p) => p.description)
+                          .filter((d) => d && d.trim() !== "");
+                        const unique = Array.from(new Set(existing));
+                        if (val.trim().length > 0) {
+                          const filtered = unique.filter((d) =>
+                            d.toLowerCase().includes(val.toLowerCase())
+                          );
+                          setDescAutocomplete(filtered);
+                          setShowDescAutocomplete(filtered.length > 0);
+                        } else {
+                          setDescAutocomplete(unique.slice(0, 5));
+                          setShowDescAutocomplete(unique.length > 0);
+                        }
+                      }}
+                      onFocus={() => {
+                        const existing = products
+                          .map((p) => p.description)
+                          .filter((d) => d && d.trim() !== "");
+                        const unique = Array.from(new Set(existing));
+                        const val = productForm.description.trim();
+                        if (val.length === 0) {
+                          setDescAutocomplete(unique.slice(0, 5));
+                        } else {
+                          const filtered = unique.filter((d) =>
+                            d.toLowerCase().includes(val.toLowerCase())
+                          );
+                          setDescAutocomplete(filtered);
+                        }
+                        setShowDescAutocomplete(unique.length > 0);
+                      }}
+                      onBlur={() => setTimeout(() => setShowDescAutocomplete(false), 150)}
+                      className="w-full p-3.5 rounded-lg border border-outline-variant focus:border-primary focus:outline-none resize-none"
+                      placeholder="เขียนรายละเอียด หรือเลือกจากสินค้าที่มีในระบบ..."
+                    />
+
+                    {/* Description Autocomplete Dropdown */}
+                    {showDescAutocomplete && descAutocomplete.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg z-50 overflow-hidden max-h-52 overflow-y-auto">
+                        <div className="px-3.5 py-2 text-[10px] text-on-surface-variant font-semibold uppercase tracking-wider border-b border-outline-variant bg-surface-container-low flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[14px]">history</span>
+                          รายละเอียดจากสินค้าในระบบ
+                        </div>
+                        {descAutocomplete.map((desc, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onMouseDown={() => {
+                              setProductForm({ ...productForm, description: desc });
+                              setShowDescAutocomplete(false);
+                            }}
+                            className={`w-full text-left px-3.5 py-2.5 text-sm hover:bg-primary/5 active:bg-primary/10 transition-colors flex items-start gap-2 ${
+                              productForm.description === desc ? "bg-primary/10" : ""
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-[15px] text-on-surface-variant shrink-0 mt-0.5">description</span>
+                            <span className="text-on-surface line-clamp-2 text-xs leading-relaxed">{desc}</span>
+                            {productForm.description === desc && (
+                              <span className="material-symbols-outlined text-primary text-[15px] ml-auto shrink-0">check</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
