@@ -125,14 +125,14 @@ function HomeContent() {
 
       <main className="max-w-[1100px] mx-auto px-container-padding pb-32">
         {/* Search Input */}
-        <section className="mt-stack-md">
+        <section className="mt-stack-md relative z-40">
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
+            <span className="material-symbols-outlined absolute left-3.5 top-[22px] -translate-y-1/2 text-on-surface-variant text-[20px]">
               search
             </span>
             <input
               type="text"
-              placeholder="ค้นหาชื่อสินค้า..."
+              placeholder="ค้นหาชื่อสินค้าจากทุกหมวดหมู่..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-11 pl-11 pr-10 rounded-full border border-outline-variant bg-white focus:border-primary focus:outline-none text-body-md shadow-sm transition-all"
@@ -140,10 +140,48 @@ function HomeContent() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container-high"
+                className="absolute right-3.5 top-[22px] -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container-high"
               >
                 <span className="material-symbols-outlined text-on-surface-variant text-[16px]">close</span>
               </button>
+            )}
+
+            {/* Search Dropdown */}
+            {searchQuery.trim() !== "" && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-outline-variant rounded-2xl shadow-xl overflow-hidden max-h-80 overflow-y-auto animate-fade-in z-50">
+                {filteredProducts.length > 0 ? (
+                  <>
+                    <div className="px-4 py-2 text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/5 border-b border-outline-variant/50">
+                      ผลการค้นหา ({filteredProducts.length} รายการ)
+                    </div>
+                    {filteredProducts.map((p) => (
+                      <Link
+                        key={p.id}
+                        href={`/product/${p.id}`}
+                        className="flex items-center gap-3 p-3 hover:bg-surface-container-high border-b border-outline-variant/50 last:border-0 transition-colors"
+                      >
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-surface-container-highest shrink-0 shadow-sm border border-outline-variant/30">
+                          {p.images.length > 0 ? (
+                            <Image src={p.images[0]} alt={p.name} fill className="object-cover" unoptimized />
+                          ) : (
+                            <span className="material-symbols-outlined absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-outline">image</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-on-surface text-sm truncate">{p.name}</h4>
+                          <p className="text-xs text-on-surface-variant truncate">{p.category} • ฿{p.price}</p>
+                        </div>
+                        <span className="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+                      </Link>
+                    ))}
+                  </>
+                ) : (
+                  <div className="p-6 text-center text-sm text-on-surface-variant flex flex-col items-center gap-2">
+                    <span className="material-symbols-outlined text-4xl text-outline">search_off</span>
+                    <p>ไม่พบสินค้าที่ค้นหา</p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </section>
