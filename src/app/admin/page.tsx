@@ -1,6 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+// Common Thai dessert name suggestions for autocomplete
+const THAI_DESSERT_SUGGESTIONS = [
+  "เบรกขนม 2 อย่าง",
+  "เบรกขนม 3 อย่าง",
+  "วุ้นกะทิ",
+  "วุ้นมะพร้าวอ่อน",
+  "ขนมเปียกปูน",
+  "ขนมลืมลาวา",
+  "ข้าวเหนียวมะม่วง",
+  "ข้าวเหนียวสังขยา",
+  "ข้าวเหนียวทุเรียน",
+  "ข้าวต้มมัด",
+  "บัวลอยน้ำขิง",
+  "บัวลอยไข่หวาน",
+  "ลอดช่องน้ำกะทิ",
+  "ลอดช่องสิงคโปร์",
+  "สังขยาใบเตย",
+  "สังขยาฟักทอง",
+  "ทองหยิบ",
+  "ทองหยอด",
+  "ฝอยทอง",
+  "กล้วยบวชชี",
+  "กล้วยทอด",
+  "เผือกทอด",
+  "มันทอด",
+  "ขนมต้ม",
+  "ขนมชั้น",
+  "ขนมกล้วย",
+  "ขนมใส่ไส้",
+  "ขนมครก",
+  "ขนมถ้วยฟู",
+  "ขนมหน้าตั้ง",
+  "ขนมทองพับ",
+  "ขนมดอกลำดวน",
+  "ขนมดอกจอก",
+  "ขนมกระยาสารท",
+  "ขนมเทียน",
+  "ขนมจาก",
+  "น้ำแข็งไสราดกะทิ",
+  "น้ำแข็งไสเผือก",
+  "วุ้นกรอบ",
+  "วุ้นหวาน",
+  "ไอศกรีมกะทิ",
+  "ไอศกรีมข้าวเหนียว",
+  "มะพร้าวแก้ว",
+  "ฟักทองแก้ว",
+  "กล้วยแก้ว",
+  "ชุดขนมไทย",
+];
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -47,6 +97,9 @@ export default function AdminDashboard() {
   const [prodSearchQuery, setProdSearchQuery] = useState("");
   const [catSearchQuery, setCatSearchQuery] = useState("");
   const [otherTags, setOtherTags] = useState("");   // แท็กอื่นๆ
+  const [nameAutocomplete, setNameAutocomplete] = useState<string[]>([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
 
   const [productForm, setProductForm] = useState({
     name: "",
@@ -630,14 +683,81 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-label-md font-bold mb-1">ชื่อสินค้า (Required)</label>
-                  <input
-                    type="text"
-                    required
-                    value={productForm.name}
-                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                    className="w-full h-11 px-3.5 rounded-lg border border-outline-variant focus:border-primary focus:outline-none"
-                    placeholder="เช่น ข้าวเหนียวมะม่วง"
-                  />
+                  <div className="relative" ref={autocompleteRef}>
+                    <input
+                      type="text"
+                      required
+                      value={productForm.name}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProductForm({ ...productForm, name: val });
+                        if (val.trim().length > 0) {
+                          const filtered = THAI_DESSERT_SUGGESTIONS.filter((s) =>
+                            s.toLowerCase().includes(val.toLowerCase())
+                          );
+                          setNameAutocomplete(filtered);
+                          setShowAutocomplete(filtered.length > 0);
+                        } else {
+                          setNameAutocomplete(THAI_DESSERT_SUGGESTIONS.slice(0, 8));
+                          setShowAutocomplete(true);
+                        }
+                      }}
+                      onFocus={() => {
+                        const val = productForm.name.trim();
+                        if (val.length === 0) {
+                          setNameAutocomplete(THAI_DESSERT_SUGGESTIONS.slice(0, 8));
+                        } else {
+                          const filtered = THAI_DESSERT_SUGGESTIONS.filter((s) =>
+                            s.toLowerCase().includes(val.toLowerCase())
+                          );
+                          setNameAutocomplete(filtered);
+                        }
+                        setShowAutocomplete(true);
+                      }}
+                      onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
+                      className="w-full h-11 px-3.5 pr-10 rounded-lg border border-outline-variant focus:border-primary focus:outline-none"
+                      placeholder="พิมพ์หรือเลือกจากรายการแนะนำ..."
+                      autoComplete="off"
+                    />
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] pointer-events-none">
+                      {showAutocomplete ? "expand_less" : "expand_more"}
+                    </span>
+
+                    {/* Autocomplete Dropdown */}
+                    {showAutocomplete && nameAutocomplete.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg z-50 overflow-hidden max-h-52 overflow-y-auto">
+                        {nameAutocomplete.length < THAI_DESSERT_SUGGESTIONS.length && (
+                          <div className="px-3.5 py-2 text-[10px] text-on-surface-variant font-semibold uppercase tracking-wider border-b border-outline-variant bg-surface-container-low">
+                            รายการที่เกี่ยวข้อง
+                          </div>
+                        )}
+                        {nameAutocomplete.length === THAI_DESSERT_SUGGESTIONS.slice(0,8).length && productForm.name.trim() === "" && (
+                          <div className="px-3.5 py-2 text-[10px] text-on-surface-variant font-semibold uppercase tracking-wider border-b border-outline-variant bg-surface-container-low">
+                            ✨ ขนมไทยยอดนิยม
+                          </div>
+                        )}
+                        {nameAutocomplete.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onMouseDown={() => {
+                              setProductForm({ ...productForm, name: suggestion });
+                              setShowAutocomplete(false);
+                            }}
+                            className={`w-full text-left px-3.5 py-2.5 text-body-md hover:bg-primary/5 active:bg-primary/10 transition-colors flex items-center gap-2 ${
+                              productForm.name === suggestion ? "bg-primary/10 text-primary font-bold" : "text-on-surface"
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-[16px] text-on-surface-variant shrink-0">cookie</span>
+                            {suggestion}
+                            {productForm.name === suggestion && (
+                              <span className="material-symbols-outlined text-primary text-[16px] ml-auto">check</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="col-span-2 md:col-span-1">
