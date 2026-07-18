@@ -18,6 +18,7 @@ export default function ProductDetail({
   const resolvedParams = use(params);
   const captureRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,12 @@ export default function ProductDetail({
   const [activeSlide, setActiveSlide] = useState(0);
   const [copySuccess, setCopySuccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Track mount state to prevent setState on unmounted component
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   // Fetch product and related products from Supabase
   useEffect(() => {
@@ -124,7 +131,7 @@ export default function ProductDetail({
 
 
   const handleCopy = async () => {
-    if (!captureRef.current || !product) return;
+    if (!captureRef.current || !product || isExporting) return;
     try {
       setIsExporting(true);
 
@@ -137,6 +144,10 @@ export default function ProductDetail({
             useCORS: true,
             scale: 2,
             backgroundColor: "#f8f9fa",
+            // Remove html2canvas cloned elements from DOM after render
+            onclone: (_doc, element) => {
+              element.style.position = "static";
+            },
           })
             .then((canvas) => {
               canvas.toBlob((blob) => {
@@ -152,13 +163,25 @@ export default function ProductDetail({
       });
 
       await navigator.clipboard.write([clipboardItem]);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+
+      // Clean up any stray canvas elements html2canvas may have left in the DOM
+      document.querySelectorAll("canvas").forEach((c) => {
+        if (!captureRef.current?.contains(c)) c.remove();
+      });
+
+      if (isMountedRef.current) {
+        setCopySuccess(true);
+        setTimeout(() => { if (isMountedRef.current) setCopySuccess(false); }, 2000);
+      }
     } catch (err: any) {
       console.error("Failed to copy image", err);
+      // Clean up stray canvas elements even on error
+      document.querySelectorAll("canvas").forEach((c) => {
+        if (!captureRef.current?.contains(c)) c.remove();
+      });
       alert(`เกิดข้อผิดพลาดในการคัดลอก: ${err.message || err.name || "เบราว์เซอร์ไม่รองรับการคัดลอกแบบรูปภาพ"}`);
     } finally {
-      setIsExporting(false);
+      if (isMountedRef.current) setIsExporting(false);
     }
   };
 
