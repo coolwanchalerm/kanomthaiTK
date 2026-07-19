@@ -369,22 +369,30 @@ export default function AdminDashboard() {
   return (
     <div className="bg-background min-h-screen pb-16">
       {/* Top Header */}
-      <header className="bg-primary text-white py-4 px-6 sticky top-0 z-40 shadow-md flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold">ระบบควบคุมหลังบ้านแอดมิน</h1>
-          <p className="text-xs text-white/80">จัดการร้านค้า ขนมไทยแทนคุณ</p>
+      <header className="bg-primary text-white py-3 px-6 sticky top-0 z-40 shadow-md flex justify-between items-center gap-3">
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold truncate">ระบบควบคุมหลังบ้าน</h1>
+          <p className="text-xs text-white/70 hidden sm:block">ขนมไทยแทนคุณ</p>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-sm border border-white/40 hover:bg-white/10 px-4 py-2 rounded-full font-medium transition-all flex items-center gap-1.5">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Admin badge */}
+          <div className="hidden sm:flex items-center gap-2 bg-white/10 rounded-full px-3 py-1.5 text-xs font-semibold">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+            </span>
+            Admin Online
+          </div>
+          <Link href="/" className="text-sm border border-white/30 hover:bg-white/10 px-3 py-1.5 rounded-full font-medium transition-all flex items-center gap-1.5">
             <span className="material-symbols-outlined text-[18px]">visibility</span>
-            ดูหน้าร้านค้า
+            <span className="hidden sm:inline">ดูหน้าร้านค้า</span>
           </Link>
           <button
             onClick={handleLogout}
-            className="text-sm bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full font-medium transition-all flex items-center gap-1.5"
+            className="text-sm bg-white/20 hover:bg-red-500/80 border border-white/20 hover:border-red-400/50 px-3 py-1.5 rounded-full font-medium transition-all flex items-center gap-1.5 group"
           >
             <span className="material-symbols-outlined text-[18px]">logout</span>
-            ออกจากระบบ
+            <span className="hidden sm:inline">ออกจากระบบ</span>
           </button>
         </div>
       </header>
