@@ -87,6 +87,13 @@ export default function AdminDashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Storage Stats State
+  const [storageUsedBytes, setStorageUsedBytes] = useState<number | null>(null);
+  const [storageFileCount, setStorageFileCount] = useState<number>(0);
+  const [storageQuotaBytes, setStorageQuotaBytes] = useState<number>(1 * 1024 * 1024 * 1024); // default 1GB
+  const [storageLoading, setStorageLoading] = useState(false);
+  const [exportingBackup, setExportingBackup] = useState(false);
+
   // Form Modal States
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -170,6 +177,7 @@ export default function AdminDashboard() {
         if (res.ok) {
           setAuthorized(true);
           fetchData();
+          fetchStorageInfo();
         } else {
           router.push("/admin/login");
         }
@@ -207,6 +215,78 @@ export default function AdminDashboard() {
       console.error("Error loading data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch Supabase Storage usage info
+  const fetchStorageInfo = async () => {
+    try {
+      setStorageLoading(true);
+      const bucketsToCheck = ["images", "product-images", "public"];
+      let totalBytes = 0;
+      let totalFiles = 0;
+
+      for (const bucketName of bucketsToCheck) {
+        try {
+          const { data: files, error } = await supabase.storage
+            .from(bucketName)
+            .list("", { limit: 1000, offset: 0 });
+          if (!error && files) {
+            for (const file of files) {
+              if (file.metadata?.size) {
+                totalBytes += file.metadata.size;
+              }
+              totalFiles++;
+            }
+          }
+        } catch {
+          // bucket may not exist, skip
+        }
+      }
+
+      setStorageUsedBytes(totalBytes);
+      setStorageFileCount(totalFiles);
+    } catch (err) {
+      console.error("Error fetching storage info:", err);
+    } finally {
+      setStorageLoading(false);
+    }
+  };
+
+  // Export database as JSON backup
+  const handleExportBackup = async () => {
+    if (exportingBackup) return;
+    try {
+      setExportingBackup(true);
+      const { data: prodData } = await supabase
+        .from("productWeb")
+        .select(`*, categories(name)`)
+        .order("created_at", { ascending: false });
+      const { data: catData } = await supabase
+        .from("categories")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      const backupData = {
+        exported_at: new Date().toISOString(),
+        products: prodData || [],
+        categories: catData || [],
+      };
+
+      const json = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `kanomthaink-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert("เกิดข้อผิดพลาดในการ Export: " + (err.message || "ไม่ทราบสาเหตุ"));
+    } finally {
+      setExportingBackup(false);
     }
   };
 
@@ -488,7 +568,7 @@ export default function AdminDashboard() {
 
       <main className="max-w-6xl mx-auto px-4 mt-8">
         {/* Stats Section */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-surface p-4 sm:p-6 rounded-2xl border border-outline-variant shadow-sm flex items-center gap-3 sm:gap-4">
             <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-2xl">shopping_basket</span>
@@ -515,6 +595,95 @@ export default function AdminDashboard() {
               <p className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">สินค้าไฮไลท์/แนะนำ</p>
               <h3 className="text-2xl font-bold text-on-surface mt-1">{totalPromoProducts} รายการ</h3>
             </div>
+          </div>
+        </section>
+
+        {/* Storage Status + Backup Section */}
+        <section className="mb-8 bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-outline-variant">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-xl">cloud</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-on-surface text-sm">พื้นที่ Supabase Storage</h3>
+                <p className="text-xs text-on-surface-variant">
+                  {storageLoading
+                    ? "กำลังตรวจสอบ..."
+                    : storageUsedBytes === null
+                    ? "ไม่สามารถดึงข้อมูลได้"
+                    : `ใช้แล้ว ${storageUsedBytes < 1024 * 1024
+                        ? `${(storageUsedBytes / 1024).toFixed(1)} KB`
+                        : storageUsedBytes < 1024 * 1024 * 1024
+                        ? `${(storageUsedBytes / (1024 * 1024)).toFixed(2)} MB`
+                        : `${(storageUsedBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+                      } จาก ${(storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(0)} GB • ${storageFileCount} ไฟล์ภาพ`
+                  }
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={fetchStorageInfo}
+                disabled={storageLoading}
+                className="h-9 px-3 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px]">refresh</span>
+                รีเฟรช
+              </button>
+              <button
+                onClick={handleExportBackup}
+                disabled={exportingBackup}
+                className="h-9 px-3 rounded-full bg-primary text-on-primary text-xs font-bold flex items-center gap-1.5 hover:shadow-md active:scale-95 transition-all disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px]">{exportingBackup ? "hourglass_empty" : "download"}</span>
+                {exportingBackup ? "กำลัง Export..." : "Backup JSON"}
+              </button>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="px-5 py-4">
+            {storageLoading ? (
+              <div className="h-3 bg-surface-container-high rounded-full animate-pulse" />
+            ) : storageUsedBytes !== null ? (
+              <>
+                <div className="flex justify-between text-[11px] text-on-surface-variant font-semibold mb-1.5">
+                  <span>พื้นที่ที่ใช้</span>
+                  <span>
+                    {((storageUsedBytes / storageQuotaBytes) * 100).toFixed(2)}%
+                  </span>
+                </div>
+                <div className="h-3 bg-surface-container-high rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      storageUsedBytes / storageQuotaBytes > 0.8
+                        ? "bg-red-500"
+                        : storageUsedBytes / storageQuotaBytes > 0.5
+                        ? "bg-yellow-500"
+                        : "bg-primary"
+                    }`}
+                    style={{ width: `${Math.min((storageUsedBytes / storageQuotaBytes) * 100, 100).toFixed(2)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-2 text-[10px] text-on-surface-variant">
+                  <span>0 GB</span>
+                  <span className={`font-semibold ${
+                    storageUsedBytes / storageQuotaBytes > 0.8 ? "text-red-600" :
+                    storageUsedBytes / storageQuotaBytes > 0.5 ? "text-yellow-600" : "text-primary"
+                  }`}>
+                    {storageUsedBytes / storageQuotaBytes > 0.8
+                      ? "⚠️ พื้นที่ใกล้เต็ม — ควรสำรองข้อมูลโดยเร็ว"
+                      : storageUsedBytes / storageQuotaBytes > 0.5
+                      ? "⚡ พื้นที่ใช้งานเกิน 50% — ควรวางแผนสำรองข้อมูล"
+                      : "✅ พื้นที่ยังมีเพียงพอ"}
+                  </span>
+                  <span>{(storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(0)} GB</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-on-surface-variant text-center py-1">ไม่สามารถดึงข้อมูล Storage ได้ในขณะนี้</p>
+            )}
           </div>
         </section>
 
