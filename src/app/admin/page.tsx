@@ -222,10 +222,11 @@ export default function AdminDashboard() {
   const fetchStorageInfo = async () => {
     try {
       setStorageLoading(true);
-      const bucketsToCheck = ["images", "product-images", "public"];
       let totalBytes = 0;
       let totalFiles = 0;
 
+      // 1. Check Supabase Storage buckets
+      const bucketsToCheck = ["images", "product-images", "public"];
       for (const bucketName of bucketsToCheck) {
         try {
           const { data: files, error } = await supabase.storage
@@ -236,11 +237,35 @@ export default function AdminDashboard() {
               if (file.metadata?.size) {
                 totalBytes += file.metadata.size;
               }
-              totalFiles++;
+              if (file.name && file.name !== ".emptyFolderPlaceholder") {
+                totalFiles++;
+              }
             }
           }
         } catch {
           // bucket may not exist, skip
+        }
+      }
+
+      // 2. Also measure image data stored directly in the database (base64 / URL strings)
+      //    This covers the case where Storage upload failed and images are stored as data URLs in productWeb
+      const { data: prods } = await supabase
+        .from("productWeb")
+        .select("images");
+
+      if (prods) {
+        for (const p of prods) {
+          for (const img of (p.images || []) as string[]) {
+            // Only count base64 data URIs as actual DB-stored bytes
+            if (img.startsWith("data:")) {
+              // base64 string size ≈ actual byte size
+              totalBytes += Math.round(img.length * 0.75);
+              totalFiles++;
+            } else if (img.startsWith("http")) {
+              // External URL images: count file but size not stored locally
+              totalFiles++;
+            }
+          }
         }
       }
 
@@ -606,18 +631,21 @@ export default function AdminDashboard() {
                 <span className="material-symbols-outlined text-xl">cloud</span>
               </div>
               <div>
-                <h3 className="font-bold text-on-surface text-sm">พื้นที่ Supabase Storage</h3>
+                <h3 className="font-bold text-on-surface text-sm">พื้นที่ข้อมูลสินค้า (Supabase)</h3>
                 <p className="text-xs text-on-surface-variant">
                   {storageLoading
                     ? "กำลังตรวจสอบ..."
                     : storageUsedBytes === null
                     ? "ไม่สามารถดึงข้อมูลได้"
-                    : `ใช้แล้ว ${storageUsedBytes < 1024 * 1024
-                        ? `${(storageUsedBytes / 1024).toFixed(1)} KB`
-                        : storageUsedBytes < 1024 * 1024 * 1024
-                        ? `${(storageUsedBytes / (1024 * 1024)).toFixed(2)} MB`
-                        : `${(storageUsedBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
-                      } จาก ${(storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(0)} GB • ${storageFileCount} ไฟล์ภาพ`
+                    : storageUsedBytes === 0
+                    ? `ยังไม่มีรูปภาพในระบบ • ${storageFileCount} ไฟล์`
+                    : `รูปภาพในระบบ ${storageFileCount} ไฟล์ • ใช้พื้นที่ ${
+                        storageUsedBytes < 1024 * 1024
+                          ? `${(storageUsedBytes / 1024).toFixed(1)} KB`
+                          : storageUsedBytes < 1024 * 1024 * 1024
+                          ? `${(storageUsedBytes / (1024 * 1024)).toFixed(2)} MB`
+                          : `${(storageUsedBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+                      } จาก ${(storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(0)} GB`
                   }
                 </p>
               </div>
