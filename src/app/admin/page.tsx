@@ -225,30 +225,8 @@ export default function AdminDashboard() {
       let totalBytes = 0;
       let totalFiles = 0;
 
-      // 1. Check Supabase Storage buckets
-      const bucketsToCheck = ["images", "product-images", "public"];
-      for (const bucketName of bucketsToCheck) {
-        try {
-          const { data: files, error } = await supabase.storage
-            .from(bucketName)
-            .list("", { limit: 1000, offset: 0 });
-          if (!error && files) {
-            for (const file of files) {
-              if (file.metadata?.size) {
-                totalBytes += file.metadata.size;
-              }
-              if (file.name && file.name !== ".emptyFolderPlaceholder") {
-                totalFiles++;
-              }
-            }
-          }
-        } catch {
-          // bucket may not exist, skip
-        }
-      }
-
-      // 2. Also measure image data stored directly in the database (base64 / URL strings)
-      //    This covers the case where Storage upload failed and images are stored as data URLs in productWeb
+      // Images are stored as base64 data URLs directly in productWeb.images column
+      // (Storage bucket upload is blocked by RLS — no need to scan buckets)
       const { data: prods } = await supabase
         .from("productWeb")
         .select("images");
@@ -256,13 +234,12 @@ export default function AdminDashboard() {
       if (prods) {
         for (const p of prods) {
           for (const img of (p.images || []) as string[]) {
-            // Only count base64 data URIs as actual DB-stored bytes
             if (img.startsWith("data:")) {
-              // base64 string size ≈ actual byte size
+              // base64 string length * 0.75 ≈ actual decoded byte size
               totalBytes += Math.round(img.length * 0.75);
               totalFiles++;
             } else if (img.startsWith("http")) {
-              // External URL images: count file but size not stored locally
+              // External URL — count file but no local byte cost
               totalFiles++;
             }
           }
