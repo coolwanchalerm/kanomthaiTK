@@ -68,7 +68,7 @@ export default function AdminLogin() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <div className="w-24 h-24">
           <DotLottieReact
-            src="https://lottie.host/d50f8a03-0bfb-45d7-859b-83eb8c9482aa/ldoOzvuinz.lottie"
+            src="/loading.lottie"
             loop
             autoplay
           />
@@ -148,7 +148,7 @@ export default function AdminLogin() {
               <>
                 <div className="w-5 h-5">
                   <DotLottieReact
-                    src="https://lottie.host/d50f8a03-0bfb-45d7-859b-83eb8c9482aa/ldoOzvuinz.lottie"
+                    src="/loading.lottie"
                     loop
                     autoplay
                   />

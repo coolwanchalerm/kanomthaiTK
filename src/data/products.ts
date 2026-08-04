@@ -18,7 +18,6 @@ export const products: Product[] = [
     price: 120,
     category: "ขนมไทย",
     images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBg8RRLtSyi9c_f1K3WxsLI0-_sO2kJzOalCHrX9of8agNQ5V7cRpR3vv48RlZ67lL53T_WsWsOLSnKrF9IQIvIvOAj1_ISptrE-f_auoJYyJzaFfr5Jah208LUjHGYGBCJoPG9GxR2rf1qqnxl-0HJkzS5HdQMNeWp1BLjQZdW568b3Vbso9TzyFNdPVdcS4ECsfUUYWTT67BIaE-A1PskX9hQ0h-RVzA72kMDWQQwqhnxQFuhI532",
       "https://images.unsplash.com/photo-1551806235-a05ff3f83ce9?q=80&w=2000&auto=format&fit=crop",
       "https://images.unsplash.com/photo-1601000938259-9e92002320b2?q=80&w=2000&auto=format&fit=crop",
     ],
@@ -32,7 +31,6 @@ export const products: Product[] = [
     price: 45,
     category: "ขนมไทย",
     images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAm9Cu-ha7L_c68KfPLM-SCDoNhWo04maRdoVNOUCYApyQvlGy9rugRW0Fccg5pAAq_a8szUg43j5CrBz76D7zoHRj4rdOm4nh62cA-6dH4gL0dQL6Y_tSOGltK0IIAf1VbX7nVFGdb1iSP7EWa8y2rVYvi9SBRgAy9xuoxQez_iFQg8LmvBIsqmnEbcpCgowsqJbRpBUprLEYGxSzejf6kmsDMNYKhYgCnbcOnk0D5Qg6EwpEcyNI5",
       "https://images.unsplash.com/photo-1621287704285-84e1b026079d?q=80&w=2000&auto=format&fit=crop"
     ],
     tags: ["Limited"],
@@ -45,7 +43,6 @@ export const products: Product[] = [
     price: 85,
     category: "ขนมไทย",
     images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDOL3ntqdjpygfPKX2lWKpEFN8pu-DCudzVrZM1KA2KNlVU3F_hNWlxwdQJ3zfKkCSxPhw-9PzGIBMdygvpV7ZwjcocBbheMAUe_S_Ypw6Vndko4e1HLgcSFyzsZHTWNmAuJOhpjkXZ7ebgvVr0j5fzp83Iu7xLcP4ZYwUepnwD-6XFXn5PDyLkyf19fCHOXBNoFoEJw4WyJeABRZfStulrVxbtExn0njgZYLmsMIYlQyVb1I-M-dlz",
       "https://images.unsplash.com/photo-1605658607317-a006c9a9d701?q=80&w=2000&auto=format&fit=crop"
     ],
     tags: [],
@@ -172,7 +169,6 @@ export const products: Product[] = [
     price: 35,
     category: "น้ำสมุนไพร",
     images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDKj0R9R0W9-bO6ef-KOwr2QksAmqBXAyDRhTAb1I1iZaUsg_oZNKZ3aDdRI3cVk1QiutsK1A8dVRRQHZLvbJ-nAdyzMOAg7eTVr7qOemxpgf-RukMhr4h28OWF8zRW0QfJRsxsgSvB5tbnkuuanVnxy2tdjrCtSIjQBnj89Xm-VDQGmVV9pKDoIpRPCp1lZobZ2hicn6j5BqWqAnr_Me2AAAg8sX5TRoEVyQMv29W_HoVrJoDsE4zf",
       "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=2000&auto=format&fit=crop"
     ],
     tags: ["eco"],

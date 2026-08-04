@@ -105,12 +105,48 @@ export default function AdminDashboard() {
   const [showDescAutocomplete, setShowDescAutocomplete] = useState(false);
   const descAutocompleteRef = useRef<HTMLDivElement>(null);
 
+  // Compress high-res images client-side before uploading/saving
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement("img");
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/webp", 0.85));
+        };
+        img.onerror = (err) => reject(err);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const [productImages, setProductImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+
   const [productForm, setProductForm] = useState({
     name: "",
     description: "",
     price: 0,
     category_id: "",
-    images: "", // Textarea newline separated
   });
 
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -180,6 +216,59 @@ export default function AdminDashboard() {
     router.refresh();
   };
 
+  // Handle image files selection and compression
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      setUploadingImages(true);
+      const newImages: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // 1. Compress image client side
+        const compressedDataUrl = await compressImage(file);
+        
+        // 2. Try uploading to Supabase Storage bucket 'images' or 'product-images'
+        let finalUrl = compressedDataUrl;
+        try {
+          const fileExt = file.name.split('.').pop() || 'webp';
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          
+          // Convert dataURL to Blob for upload
+          const fetchRes = await fetch(compressedDataUrl);
+          const blob = await fetchRes.blob();
+
+          const { data: storageData, error: uploadErr } = await supabase
+            .storage
+            .from('images')
+            .upload(fileName, blob, { contentType: 'image/webp', upsert: true });
+
+          if (!uploadErr && storageData) {
+            const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(fileName);
+            if (publicUrlData?.publicUrl) {
+              finalUrl = publicUrlData.publicUrl;
+            }
+          }
+        } catch (storageErr) {
+          console.warn("Storage upload fallback to compressed Data URL:", storageErr);
+        }
+
+        newImages.push(finalUrl);
+      }
+      setProductImages((prev) => [...prev, ...newImages]);
+    } catch (err: any) {
+      alert("เกิดข้อผิดพลาดในการโหลดรูปภาพ: " + (err.message || "ไม่ทราบสาเหตุ"));
+    } finally {
+      setUploadingImages(false);
+      // Reset input value
+      e.target.value = "";
+    }
+  };
+
+  const removeProductImage = (indexToRemove: number) => {
+    setProductImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
   // --- Product CRUD ---
   const openProductAdd = () => {
     setEditingProduct(null);
@@ -188,8 +277,8 @@ export default function AdminDashboard() {
       description: "",
       price: 0,
       category_id: categories[0]?.id || "",
-      images: "",
     });
+    setProductImages([]);
     setTagBest1(false);
     setTagBest(false);
     setTagRec(false);
@@ -204,8 +293,8 @@ export default function AdminDashboard() {
       description: prod.description || "",
       price: prod.price,
       category_id: prod.category_id,
-      images: prod.images.join("\n"),
     });
+    setProductImages(prod.images || []);
     
     // Set checkboxes based on existing tags
     setTagBest1(prod.tags.includes("ขายดีอันดับ 1"));
@@ -241,7 +330,7 @@ export default function AdminDashboard() {
       description: productForm.description,
       price: Number(productForm.price),
       category_id: productForm.category_id,
-      images: productForm.images.split("\n").map(u => u.trim()).filter(Boolean),
+      images: productImages,
       tags: finalTags,
     };
 
@@ -458,7 +547,7 @@ export default function AdminDashboard() {
         {/* Loading Indicator */}
         {loading ? (
           <div className="text-center py-20 bg-surface rounded-2xl border border-outline-variant">
-            <div className="w-24 h-24 mx-auto mb-2"><DotLottieReact src="https://lottie.host/d50f8a03-0bfb-45d7-859b-83eb8c9482aa/ldoOzvuinz.lottie" loop autoplay /></div>
+            <div className="w-24 h-24 mx-auto mb-2"><DotLottieReact src="/loading.lottie" loop autoplay /></div>
             <p className="text-on-surface-variant">กำลังดึงข้อมูล...</p>
           </div>
         ) : (
@@ -845,15 +934,55 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-label-md font-bold mb-1">รูปภาพสินค้า (1 URL ต่อ 1 บรรทัด สำหรับสไลด์)</label>
-                  <textarea
-                    rows={3}
-                    value={productForm.images}
-                    onChange={(e) => setProductForm({ ...productForm, images: e.target.value })}
-                    className="w-full p-3.5 rounded-lg border border-outline-variant focus:border-primary focus:outline-none font-mono text-xs"
-                    placeholder="ใส่ลิงก์รูปภาพ เช่น https://images.unsplash.com/...
-https://images.unsplash.com/..."
-                  />
+                  <label className="block text-label-md font-bold mb-1">
+                    รูปภาพสินค้า (อัปโหลดไฟล์รูปภาพ)
+                  </label>
+                  
+                  {/* File upload drag & drop area */}
+                  <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-colors cursor-pointer text-center relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      disabled={uploadingImages}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <span className="material-symbols-outlined text-primary text-3xl mb-1">
+                      cloud_upload
+                    </span>
+                    <p className="text-sm font-bold text-on-surface">
+                      {uploadingImages ? "กำลังประมวลผลและอัปโหลดรูปภาพ..." : "คลิกเลือกไฟล์รูปภาพเพื่ออัปโหลด"}
+                    </p>
+                    <p className="text-xs text-on-surface-variant mt-0.5">
+                      รองรับ JPG, PNG, WebP (เลือกได้หลายรูปเพื่อทำสไลด์)
+                    </p>
+                  </div>
+
+                  {/* Thumbnail Previews */}
+                  {productImages.length > 0 && (
+                    <div className="mt-3 grid grid-cols-4 gap-2">
+                      {productImages.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-outline-variant group bg-surface-container-high">
+                          <Image
+                            src={img}
+                            alt={`รูปสินค้า ${idx + 1}`}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeProductImage(idx)}
+                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md hover:bg-red-700 transition-all"
+                            title="ลบรูปภาพนี้"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">close</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="col-span-2">
@@ -1075,7 +1204,7 @@ https://images.unsplash.com/..."
               >
                 {deleting ? (
                   <>
-                    <div className="w-6 h-6"><DotLottieReact src="https://lottie.host/d50f8a03-0bfb-45d7-859b-83eb8c9482aa/ldoOzvuinz.lottie" loop autoplay /></div>
+                    <div className="w-6 h-6"><DotLottieReact src="/loading.lottie" loop autoplay /></div>
                     <span>กำลังลบ...</span>
                   </>
                 ) : (

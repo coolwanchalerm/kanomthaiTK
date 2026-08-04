@@ -189,7 +189,7 @@ export default function ProductDetail({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-surface">
-        <div className="w-24 h-24 mb-2"><DotLottieReact src="https://lottie.host/d50f8a03-0bfb-45d7-859b-83eb8c9482aa/ldoOzvuinz.lottie" loop autoplay /></div>
+        <div className="w-24 h-24 mb-2"><DotLottieReact src="/loading.lottie" loop autoplay /></div>
         <p className="text-on-surface-variant">กำลังโหลดรายละเอียดสินค้า...</p>
       </div>
     );
