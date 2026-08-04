@@ -593,7 +593,7 @@ export default function AdminDashboard() {
 
       <main className="max-w-6xl mx-auto px-4 mt-8">
         {/* Stats Section */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div className="bg-surface p-4 sm:p-6 rounded-2xl border border-outline-variant shadow-sm flex items-center gap-3 sm:gap-4">
             <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-2xl">shopping_basket</span>
@@ -621,99 +621,73 @@ export default function AdminDashboard() {
               <h3 className="text-2xl font-bold text-on-surface mt-1">{totalPromoProducts} รายการ</h3>
             </div>
           </div>
-        </section>
 
-        {/* Storage Status + Backup Section */}
-        <section className="mb-8 bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-outline-variant">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-xl">cloud</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-on-surface text-sm">พื้นที่ข้อมูลสินค้า (Supabase)</h3>
-                <p className="text-xs text-on-surface-variant">
-                  {storageLoading
-                    ? "กำลังตรวจสอบ..."
-                    : storageUsedBytes === null
-                    ? "ไม่สามารถดึงข้อมูลได้"
-                    : storageUsedBytes === 0
-                    ? `ยังไม่มีรูปภาพในระบบ • ${storageFileCount} ไฟล์`
-                    : `รูปภาพในระบบ ${storageFileCount} ไฟล์ • ใช้พื้นที่ ${
-                        storageUsedBytes < 1024 * 1024
-                          ? `${(storageUsedBytes / 1024).toFixed(1)} KB`
-                          : storageUsedBytes < 1024 * 1024 * 1024
-                          ? `${(storageUsedBytes / (1024 * 1024)).toFixed(2)} MB`
-                          : `${(storageUsedBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
-                      } จาก ${(storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(0)} GB`
-                  }
-                </p>
-              </div>
+          {/* Storage Card */}
+          <div className="bg-surface p-4 sm:p-6 rounded-2xl border border-outline-variant shadow-sm flex items-center gap-3 sm:gap-4">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+              storageLoading ? "bg-blue-50 text-blue-400" :
+              storageUsedBytes !== null && storageUsedBytes / storageQuotaBytes > 0.8 ? "bg-red-100 text-red-600" :
+              storageUsedBytes !== null && storageUsedBytes / storageQuotaBytes > 0.5 ? "bg-yellow-100 text-yellow-700" :
+              "bg-blue-50 text-blue-600"
+            }`}>
+              <span className="material-symbols-outlined text-2xl">cloud</span>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <button
-                onClick={fetchStorageInfo}
-                disabled={storageLoading}
-                className="h-9 px-3 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[16px]">refresh</span>
-                รีเฟรช
-              </button>
-              <button
-                onClick={handleExportBackup}
-                disabled={exportingBackup}
-                className="h-9 px-3 rounded-full bg-primary text-on-primary text-xs font-bold flex items-center gap-1.5 hover:shadow-md active:scale-95 transition-all disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[16px]">{exportingBackup ? "hourglass_empty" : "download"}</span>
-                {exportingBackup ? "กำลัง Export..." : "Backup JSON"}
-              </button>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="px-5 py-4">
-            {storageLoading ? (
-              <div className="h-3 bg-surface-container-high rounded-full animate-pulse" />
-            ) : storageUsedBytes !== null ? (
-              <>
-                <div className="flex justify-between text-[11px] text-on-surface-variant font-semibold mb-1.5">
-                  <span>พื้นที่ที่ใช้</span>
-                  <span>
-                    {((storageUsedBytes / storageQuotaBytes) * 100).toFixed(2)}%
-                  </span>
-                </div>
-                <div className="h-3 bg-surface-container-high rounded-full overflow-hidden">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">พื้นที่จัดเก็บ</p>
+              {storageLoading ? (
+                <div className="mt-2 h-5 w-24 bg-surface-container-high rounded animate-pulse" />
+              ) : (
+                <h3 className="text-2xl font-bold text-on-surface mt-1">
+                  {storageUsedBytes === null
+                    ? "—"
+                    : storageUsedBytes < 1024 * 1024
+                    ? `${(storageUsedBytes / 1024).toFixed(0)} KB`
+                    : storageUsedBytes < 1024 * 1024 * 1024
+                    ? `${(storageUsedBytes / (1024 * 1024)).toFixed(1)} MB`
+                    : `${(storageUsedBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`}
+                </h3>
+              )}
+              {/* Mini progress bar */}
+              {!storageLoading && storageUsedBytes !== null && (
+                <div className="mt-2 h-1.5 bg-outline-variant rounded-full overflow-hidden w-full">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${
-                      storageUsedBytes / storageQuotaBytes > 0.8
-                        ? "bg-red-500"
-                        : storageUsedBytes / storageQuotaBytes > 0.5
-                        ? "bg-yellow-500"
-                        : "bg-primary"
+                      storageUsedBytes / storageQuotaBytes > 0.8 ? "bg-red-500" :
+                      storageUsedBytes / storageQuotaBytes > 0.5 ? "bg-yellow-500" : "bg-primary"
                     }`}
-                    style={{ width: `${Math.min((storageUsedBytes / storageQuotaBytes) * 100, 100).toFixed(2)}%` }}
+                    style={{ width: `${Math.min((storageUsedBytes / storageQuotaBytes) * 100, 100).toFixed(1)}%` }}
                   />
                 </div>
-                <div className="flex justify-between mt-2 text-[10px] text-on-surface-variant">
-                  <span>0 GB</span>
-                  <span className={`font-semibold ${
-                    storageUsedBytes / storageQuotaBytes > 0.8 ? "text-red-600" :
-                    storageUsedBytes / storageQuotaBytes > 0.5 ? "text-yellow-600" : "text-primary"
-                  }`}>
-                    {storageUsedBytes / storageQuotaBytes > 0.8
-                      ? "⚠️ พื้นที่ใกล้เต็ม — ควรสำรองข้อมูลโดยเร็ว"
-                      : storageUsedBytes / storageQuotaBytes > 0.5
-                      ? "⚡ พื้นที่ใช้งานเกิน 50% — ควรวางแผนสำรองข้อมูล"
-                      : "✅ พื้นที่ยังมีเพียงพอ"}
-                  </span>
-                  <span>{(storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(0)} GB</span>
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-on-surface-variant text-center py-1">ไม่สามารถดึงข้อมูล Storage ได้ในขณะนี้</p>
-            )}
+              )}
+              {!storageLoading && storageUsedBytes !== null && (
+                <p className="text-[10px] text-on-surface-variant mt-1">
+                  {storageFileCount} ไฟล์ • จาก {(storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(0)} GB
+                </p>
+              )}
+            </div>
           </div>
         </section>
+
+        {/* Backup & Refresh Row */}
+        <div className="flex justify-end gap-2 mb-8">
+          <button
+            onClick={fetchStorageInfo}
+            disabled={storageLoading}
+            className="h-8 px-3 rounded-full bg-surface border border-outline-variant hover:bg-surface-container-high text-on-surface text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[15px]">refresh</span>
+            รีเฟรชพื้นที่
+          </button>
+          <button
+            onClick={handleExportBackup}
+            disabled={exportingBackup}
+            className="h-8 px-3 rounded-full bg-primary text-on-primary text-xs font-bold flex items-center gap-1.5 hover:shadow-md active:scale-95 transition-all disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[15px]">{exportingBackup ? "hourglass_empty" : "download"}</span>
+            {exportingBackup ? "กำลัง Export..." : "Backup JSON"}
+          </button>
+        </div>
+
 
         {/* Tab Selection */}
         <div className="flex border-b border-outline-variant mb-6 gap-2">
