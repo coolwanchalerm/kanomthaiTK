@@ -298,9 +298,10 @@ export default function ProductDetail({
                       alt={`${product.name} image ${idx + 1}`}
                       fill
                       className="object-cover"
-                      unoptimized
                       crossOrigin="anonymous"
+                      sizes="(max-width: 1100px) 100vw, 1100px"
                       priority={idx === 0}
+                      loading={idx === 0 ? undefined : "lazy"}
                     />
                   </div>
                 ))}
@@ -490,7 +491,8 @@ export default function ProductDetail({
                         className="object-cover transition-transform duration-500 group-hover:scale-110"
                         alt={rp.name}
                         src={rp.images[0]}
-                        unoptimized
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full bg-surface-container flex items-center justify-center">

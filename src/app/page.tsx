@@ -162,7 +162,7 @@ function HomeContent() {
                       >
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-surface-container-highest shrink-0 shadow-sm border border-outline-variant/30">
                           {p.images.length > 0 ? (
-                            <Image src={p.images[0]} alt={p.name} fill className="object-cover" unoptimized />
+                            <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="48px" loading="lazy" />
                           ) : (
                             <span className="material-symbols-outlined absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-outline">image</span>
                           )}
@@ -258,7 +258,7 @@ function HomeContent() {
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                         alt={bestsellerProduct.name}
                         src={bestsellerProduct.images[0]}
-                        unoptimized
+                        sizes="(max-width: 768px) 100vw, 66vw"
                         priority
                       />
                     ) : (
@@ -304,7 +304,8 @@ function HomeContent() {
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                         alt={product.name}
                         src={product.images[0]}
-                        unoptimized
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full bg-surface-container flex items-center justify-center">
