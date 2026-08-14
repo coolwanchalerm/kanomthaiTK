@@ -151,10 +151,15 @@ export default function AdminDashboard() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>("");
 
-  const [productForm, setProductForm] = useState({
+  const [productForm, setProductForm] = useState<{
+    name: string;
+    description: string;
+    price: string | number;
+    category_id: string;
+  }>({
     name: "",
     description: "",
-    price: 0,
+    price: "",
     category_id: "",
   });
 
@@ -385,7 +390,7 @@ export default function AdminDashboard() {
     setProductForm({
       name: "",
       description: "",
-      price: 0,
+      price: "",
       category_id: categories[0]?.id || "",
     });
     setProductImages([]);
@@ -401,7 +406,7 @@ export default function AdminDashboard() {
     setProductForm({
       name: prod.name,
       description: prod.description || "",
-      price: prod.price,
+      price: String(prod.price),
       category_id: prod.category_id,
     });
     setProductImages((prod.images || []).map(getOptimizedImageUrl));
@@ -438,7 +443,7 @@ export default function AdminDashboard() {
     const payload = {
       name: productForm.name,
       description: productForm.description,
-      price: Number(productForm.price),
+      price: Number(productForm.price) || 0,
       category_id: productForm.category_id,
       images: productImages,
       tags: finalTags,
@@ -1066,12 +1071,17 @@ export default function AdminDashboard() {
                 <div className="col-span-2 md:col-span-1">
                   <label className="block text-label-md font-bold mb-1">ราคาสินค้า (฿)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="0"
                     required
-                    min={0}
                     value={productForm.price}
-                    onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })}
-                    className="w-full h-11 px-3.5 rounded-lg border border-outline-variant focus:border-primary focus:outline-none"
+                    onChange={(e) => {
+                      const cleanVal = e.target.value.replace(/[^0-9]/g, "").replace(/^0+(?=\d)/, "");
+                      setProductForm({ ...productForm, price: cleanVal });
+                    }}
+                    className="w-full h-11 px-3.5 rounded-lg border border-outline-variant focus:border-primary focus:outline-none text-body-md"
                   />
                 </div>
 
