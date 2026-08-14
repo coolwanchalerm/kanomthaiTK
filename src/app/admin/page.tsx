@@ -590,13 +590,6 @@ export default function AdminDashboard() {
   // Calculate statistics
   const totalProducts = products.length;
   const totalCategories = categories.length;
-  // Calculate total bestselling & recommended products instead of sales sum
-  const totalPromoProducts = products.filter(
-    (p) =>
-      p.tags.includes("ขายดีอันดับ 1") ||
-      p.tags.includes("ขายดี") ||
-      p.tags.includes("แนะนำ")
-  ).length;
 
   return (
     <div className="bg-background min-h-screen pb-16">
