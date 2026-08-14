@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { getOptimizedImageUrl } from "@/lib/image-url";
 
 // Common Thai dessert name suggestions for autocomplete
 const THAI_DESSERT_SUGGESTIONS = [
@@ -148,6 +149,7 @@ export default function AdminDashboard() {
 
   const [productImages, setProductImages] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
 
   const [productForm, setProductForm] = useState({
     name: "",
@@ -225,8 +227,7 @@ export default function AdminDashboard() {
       let totalBytes = 0;
       let totalFiles = 0;
 
-      // Images are stored as base64 data URLs directly in productWeb.images column
-      // (Storage bucket upload is blocked by RLS — no need to scan buckets)
+      // Images are stored as Google Drive URLs in productWeb.images column
       const { data: prods } = await supabase
         .from("productWeb")
         .select("images");
@@ -234,12 +235,12 @@ export default function AdminDashboard() {
       if (prods) {
         for (const p of prods) {
           for (const img of (p.images || []) as string[]) {
-            if (img.startsWith("data:")) {
-              // base64 string length * 0.75 ≈ actual decoded byte size
-              totalBytes += Math.round(img.length * 0.75);
+            if (img.includes("googleusercontent.com") || img.startsWith("http")) {
+              // Google Drive URL or external URL — count file but no local byte cost
               totalFiles++;
-            } else if (img.startsWith("http")) {
-              // External URL — count file but no local byte cost
+            } else if (img.startsWith("data:")) {
+              // Legacy base64 — count byte size
+              totalBytes += Math.round(img.length * 0.75);
               totalFiles++;
             }
           }
@@ -298,57 +299,84 @@ export default function AdminDashboard() {
     router.refresh();
   };
 
-  // Handle image files selection and compression
+  // Handle image files selection — compress client-side then upload to Google Drive
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
     try {
       setUploadingImages(true);
       const newImages: string[] = [];
+      const failedFiles: string[] = [];
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        // 1. Compress image client side
-        const compressedDataUrl = await compressImage(file);
-        
-        // 2. Try uploading to Supabase Storage bucket 'images' or 'product-images'
-        let finalUrl = compressedDataUrl;
+        setUploadProgress(`กำลังอัปโหลดรูปที่ ${i + 1}/${files.length} (${file.name})...`);
+
         try {
-          const fileExt = file.name.split('.').pop() || 'webp';
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-          
-          // Convert dataURL to Blob for upload
+          // 1. Compress image client-side (Max 1200px, 0.82 quality)
+          const compressedDataUrl = await compressImage(file);
+
+          // 2. Convert compressed dataURL back to Blob (WebP)
           const fetchRes = await fetch(compressedDataUrl);
           const blob = await fetchRes.blob();
 
-          const { data: storageData, error: uploadErr } = await supabase
-            .storage
-            .from('images')
-            .upload(fileName, blob, { contentType: 'image/webp', upsert: true });
+          // 3. Upload to Google Drive via API route
+          const formData = new FormData();
+          formData.append("file", blob, `image-${Date.now()}-${i}.webp`);
 
-          if (!uploadErr && storageData) {
-            const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(fileName);
-            if (publicUrlData?.publicUrl) {
-              finalUrl = publicUrlData.publicUrl;
-            }
+          const uploadRes = await fetch("/api/upload-drive", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!uploadRes.ok) {
+            const errData = await uploadRes.json().catch(() => ({}));
+            throw new Error(errData.error || `Upload failed (${uploadRes.status})`);
           }
-        } catch (storageErr) {
-          console.warn("Storage upload fallback to compressed Data URL:", storageErr);
-        }
 
-        newImages.push(finalUrl);
+          const { url } = await uploadRes.json();
+          if (url) {
+            newImages.push(url);
+            // Progressively add each image to state so user sees real-time progress
+            setProductImages((prev) => [...prev, url]);
+          }
+
+          // Small pause between multiple files to prevent Google Apps Script throttling
+          if (i < files.length - 1) {
+            await new Promise((r) => setTimeout(r, 400));
+          }
+        } catch (fileErr: any) {
+          console.error(`Failed to upload ${file.name}:`, fileErr);
+          failedFiles.push(file.name);
+        }
       }
-      setProductImages((prev) => [...prev, ...newImages]);
+
+      if (failedFiles.length > 0) {
+        alert(`อัปโหลดสำเร็จ ${newImages.length} รูป แต่มี ${failedFiles.length} รูปที่ล้มเหลว (${failedFiles.join(", ")}) โปรดลองอัปโหลดรูปที่เหลืออีกครั้ง`);
+      }
     } catch (err: any) {
-      alert("เกิดข้อผิดพลาดในการโหลดรูปภาพ: " + (err.message || "ไม่ทราบสาเหตุ"));
+      alert("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ: " + (err.message || "ไม่ทราบสาเหตุ"));
     } finally {
       setUploadingImages(false);
+      setUploadProgress("");
       // Reset input value
       e.target.value = "";
     }
   };
 
   const removeProductImage = (indexToRemove: number) => {
+    const imgToRemove = productImages[indexToRemove];
     setProductImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    
+    // Asynchronously delete the removed file from Google Drive
+    if (imgToRemove) {
+      fetch("/api/delete-drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: imgToRemove }),
+      }).catch((err) => console.error("Failed to delete image from Drive:", err));
+    }
   };
 
   // --- Product CRUD ---
@@ -376,7 +404,7 @@ export default function AdminDashboard() {
       price: prod.price,
       category_id: prod.category_id,
     });
-    setProductImages(prod.images || []);
+    setProductImages((prod.images || []).map(getOptimizedImageUrl));
     
     // Set checkboxes based on existing tags
     setTagBest1(prod.tags.includes("ขายดีอันดับ 1"));
@@ -491,17 +519,41 @@ export default function AdminDashboard() {
     try {
       setDeleting(true);
       if (deleteTarget.type === "product") {
+        const targetProd = products.find((p) => p.id === deleteTarget.id);
+        const imagesToDelete = targetProd?.images || [];
+
         const { error } = await supabase
           .from("productWeb")
           .delete()
           .eq("id", deleteTarget.id);
         if (error) throw error;
+
+        // Delete product images from Google Drive
+        if (imagesToDelete.length > 0) {
+          fetch("/api/delete-drive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ urls: imagesToDelete }),
+          }).catch((err) => console.error("Failed to delete product images from Drive:", err));
+        }
       } else {
+        const prodsInCategory = products.filter((p) => p.category_id === deleteTarget.id);
+        const imagesToDelete = prodsInCategory.flatMap((p) => p.images || []);
+
         const { error } = await supabase
           .from("categories")
           .delete()
           .eq("id", deleteTarget.id);
         if (error) throw error;
+
+        // Delete all images under the deleted category
+        if (imagesToDelete.length > 0) {
+          fetch("/api/delete-drive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ urls: imagesToDelete }),
+          }).catch((err) => console.error("Failed to delete category images from Drive:", err));
+        }
       }
       setDeleteConfirmOpen(false);
       setDeleteTarget(null);
@@ -738,17 +790,19 @@ export default function AdminDashboard() {
 
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-surface-container-lowest">
                   {filteredProducts.length > 0 ? (
-                    filteredProducts.map((p) => (
+                    filteredProducts.map((p, idx) => (
                       <div key={p.id} className="border border-outline-variant rounded-xl p-4 flex flex-col justify-between bg-surface hover:shadow-md transition-all gap-3">
                         <div className="flex gap-4">
                           {/* Thumbnail Image */}
                           <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-outline-variant bg-surface-container-high shrink-0">
                             {p.images.length > 0 ? (
                               <Image
-                                src={p.images[0]}
+                                src={getOptimizedImageUrl(p.images[0])}
                                 alt={p.name}
                                 fill
                                 className="object-cover"
+                                priority={idx < 6}
+                                loading={idx < 6 ? "eager" : "lazy"}
                                 unoptimized
                               />
                             ) : (
@@ -1100,7 +1154,7 @@ export default function AdminDashboard() {
                       cloud_upload
                     </span>
                     <p className="text-sm font-bold text-on-surface">
-                      {uploadingImages ? "กำลังประมวลผลและอัปโหลดรูปภาพ..." : "คลิกเลือกไฟล์รูปภาพเพื่ออัปโหลด"}
+                      {uploadingImages ? (uploadProgress || "กำลังประมวลผลและอัปโหลดรูปภาพ...") : "คลิกเลือกไฟล์รูปภาพเพื่ออัปโหลด"}
                     </p>
                     <p className="text-xs text-on-surface-variant mt-0.5">
                       รองรับ JPG, PNG, WebP (เลือกได้หลายรูปเพื่อทำสไลด์)
@@ -1113,10 +1167,11 @@ export default function AdminDashboard() {
                       {productImages.map((img, idx) => (
                         <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-outline-variant group bg-surface-container-high">
                           <Image
-                            src={img}
+                            src={getOptimizedImageUrl(img)}
                             alt={`รูปสินค้า ${idx + 1}`}
                             fill
                             className="object-cover"
+                            loading="eager"
                             unoptimized
                           />
                           <button

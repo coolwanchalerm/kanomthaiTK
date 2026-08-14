@@ -9,6 +9,7 @@ import { Product } from "@/data/products";
 import html2canvas from "html2canvas-pro";
 import BottomNavBar from "@/components/BottomNavBar";
 import { supabase } from "@/lib/supabase";
+import { getOptimizedImageUrl } from "@/lib/image-url";
 
 export default function ProductDetail({
   params,
@@ -64,7 +65,7 @@ export default function ProductDetail({
             description: p.description || "",
             price: p.price,
             category: p.categories?.name || "",
-            images: p.images || [],
+            images: (p.images || []).map(getOptimizedImageUrl),
             tags: p.tags || [],
             salesCount: p.sales_count || 0,
           };
@@ -90,7 +91,7 @@ export default function ProductDetail({
               description: rp.description || "",
               price: rp.price,
               category: rp.categories?.name || "",
-              images: rp.images || [],
+              images: (rp.images || []).map(getOptimizedImageUrl),
               tags: rp.tags || [],
               salesCount: rp.sales_count || 0,
             }));
@@ -301,7 +302,8 @@ export default function ProductDetail({
                       crossOrigin="anonymous"
                       sizes="(max-width: 1100px) 100vw, 1100px"
                       priority={idx === 0}
-                      loading={idx === 0 ? undefined : "lazy"}
+                      loading={idx === 0 ? "eager" : "lazy"}
+                      unoptimized
                     />
                   </div>
                 ))}
@@ -492,7 +494,7 @@ export default function ProductDetail({
                         alt={rp.name}
                         src={rp.images[0]}
                         sizes="(max-width: 768px) 50vw, 25vw"
-                        loading="lazy"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-full h-full bg-surface-container flex items-center justify-center">
