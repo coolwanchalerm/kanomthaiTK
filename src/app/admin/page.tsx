@@ -615,6 +615,15 @@ export default function AdminDashboard() {
             </span>
             Admin Online
           </div>
+          <button
+            onClick={handleExportBackup}
+            disabled={exportingBackup}
+            className="text-xs bg-white/20 hover:bg-white/30 border border-white/20 text-white px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            title="ดาวน์โหลดข้อมูลสำรอง JSON"
+          >
+            <span className="material-symbols-outlined text-[16px]">{exportingBackup ? "hourglass_empty" : "download"}</span>
+            <span className="hidden sm:inline">{exportingBackup ? "Exporting..." : "Backup JSON"}</span>
+          </button>
           <Link href="/" className="text-sm border border-white/30 hover:bg-white/10 px-3 py-1.5 rounded-full font-medium transition-all flex items-center gap-1.5">
             <span className="material-symbols-outlined text-[18px]">visibility</span>
             <span className="hidden sm:inline">ดูหน้าร้านค้า</span>
@@ -629,104 +638,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 mt-8">
-        {/* Stats Section */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <div className="bg-surface p-4 sm:p-6 rounded-2xl border border-outline-variant shadow-sm flex items-center gap-3 sm:gap-4">
-            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-2xl">shopping_basket</span>
-            </div>
-            <div>
-              <p className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">สินค้าทั้งหมด</p>
-              <h3 className="text-2xl font-bold text-on-surface mt-1">{totalProducts} รายการ</h3>
-            </div>
-          </div>
-          <div className="bg-surface p-4 sm:p-6 rounded-2xl border border-outline-variant shadow-sm flex items-center gap-3 sm:gap-4">
-            <div className="w-12 h-12 rounded-full bg-secondary-container text-primary flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-2xl">category</span>
-            </div>
-            <div>
-              <p className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">หมวดหมู่</p>
-              <h3 className="text-2xl font-bold text-on-surface mt-1">{totalCategories} ประเภท</h3>
-            </div>
-          </div>
-          <div className="bg-surface p-4 sm:p-6 rounded-2xl border border-outline-variant shadow-sm flex items-center gap-3 sm:gap-4">
-            <div className="w-12 h-12 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-2xl">stars</span>
-            </div>
-            <div>
-              <p className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">สินค้าไฮไลท์/แนะนำ</p>
-              <h3 className="text-2xl font-bold text-on-surface mt-1">{totalPromoProducts} รายการ</h3>
-            </div>
-          </div>
-
-          {/* Storage Card */}
-          <div className="bg-surface p-4 sm:p-6 rounded-2xl border border-outline-variant shadow-sm flex items-center gap-3 sm:gap-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
-              storageLoading ? "bg-blue-50 text-blue-400" :
-              storageUsedBytes !== null && storageUsedBytes / storageQuotaBytes > 0.8 ? "bg-red-100 text-red-600" :
-              storageUsedBytes !== null && storageUsedBytes / storageQuotaBytes > 0.5 ? "bg-yellow-100 text-yellow-700" :
-              "bg-blue-50 text-blue-600"
-            }`}>
-              <span className="material-symbols-outlined text-2xl">cloud</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">พื้นที่จัดเก็บ</p>
-              {storageLoading ? (
-                <div className="mt-2 h-5 w-24 bg-surface-container-high rounded animate-pulse" />
-              ) : (
-                <h3 className="text-2xl font-bold text-on-surface mt-1">
-                  {storageUsedBytes === null
-                    ? "—"
-                    : storageUsedBytes < 1024 * 1024
-                    ? `${(storageUsedBytes / 1024).toFixed(0)} KB`
-                    : storageUsedBytes < 1024 * 1024 * 1024
-                    ? `${(storageUsedBytes / (1024 * 1024)).toFixed(1)} MB`
-                    : `${(storageUsedBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`}
-                </h3>
-              )}
-              {/* Mini progress bar */}
-              {!storageLoading && storageUsedBytes !== null && (
-                <div className="mt-2 h-1.5 bg-outline-variant rounded-full overflow-hidden w-full">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      storageUsedBytes / storageQuotaBytes > 0.8 ? "bg-red-500" :
-                      storageUsedBytes / storageQuotaBytes > 0.5 ? "bg-yellow-500" : "bg-primary"
-                    }`}
-                    style={{ width: `${Math.min((storageUsedBytes / storageQuotaBytes) * 100, 100).toFixed(1)}%` }}
-                  />
-                </div>
-              )}
-              {!storageLoading && storageUsedBytes !== null && (
-                <p className="text-[10px] text-on-surface-variant mt-1">
-                  {storageFileCount} ไฟล์ • จาก {(storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(0)} GB
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Backup & Refresh Row */}
-        <div className="flex justify-end gap-2 mb-8">
-          <button
-            onClick={fetchStorageInfo}
-            disabled={storageLoading}
-            className="h-8 px-3 rounded-full bg-surface border border-outline-variant hover:bg-surface-container-high text-on-surface text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-[15px]">refresh</span>
-            รีเฟรชพื้นที่
-          </button>
-          <button
-            onClick={handleExportBackup}
-            disabled={exportingBackup}
-            className="h-8 px-3 rounded-full bg-primary text-on-primary text-xs font-bold flex items-center gap-1.5 hover:shadow-md active:scale-95 transition-all disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-[15px]">{exportingBackup ? "hourglass_empty" : "download"}</span>
-            {exportingBackup ? "กำลัง Export..." : "Backup JSON"}
-          </button>
-        </div>
-
-
+      <main className="max-w-6xl mx-auto px-4 mt-6">
         {/* Tab Selection */}
         <div className="flex border-b border-outline-variant mb-6 gap-2">
           <button
