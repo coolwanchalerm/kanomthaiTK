@@ -104,6 +104,7 @@ export default function AdminDashboard() {
   const [tagBest, setTagBest] = useState(false);   // ขายดี
   const [tagRec, setTagRec] = useState(false);     // แนะนำ
   const [prodSearchQuery, setProdSearchQuery] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
   const [catSearchQuery, setCatSearchQuery] = useState("");
   const [otherTags, setOtherTags] = useState("");   // แท็กอื่นๆ
   const [nameAutocomplete, setNameAutocomplete] = useState<string[]>([]);
@@ -575,10 +576,13 @@ export default function AdminDashboard() {
     return null;
   }
 
-  // Filter lists by search queries
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(prodSearchQuery.toLowerCase().trim())
-  );
+  // Filter lists by search queries and category filter
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.name.toLowerCase().includes(prodSearchQuery.toLowerCase().trim());
+    const matchesCategory =
+      selectedCategoryFilter === "all" || p.category_id === selectedCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
   const filteredCategories = categories.filter((c) =>
     c.name.toLowerCase().includes(catSearchQuery.toLowerCase().trim())
   );
@@ -793,6 +797,68 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* Category Filter Pills Bar */}
+                <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-low flex items-center gap-2 overflow-x-auto scrollbar-none">
+                  <span className="text-xs font-bold text-on-surface-variant shrink-0 flex items-center gap-1 mr-1">
+                    <span className="material-symbols-outlined text-[16px]">filter_list</span>
+                    หมวดหมู่:
+                  </span>
+
+                  {/* All Categories Button */}
+                  <button
+                    onClick={() => setSelectedCategoryFilter("all")}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
+                      selectedCategoryFilter === "all"
+                        ? "bg-primary text-on-primary shadow-sm"
+                        : "bg-surface hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-outline-variant"
+                    }`}
+                  >
+                    <span>ทั้งหมด</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] leading-none ${
+                        selectedCategoryFilter === "all"
+                          ? "bg-white/20 text-white"
+                          : "bg-surface-container-high text-on-surface-variant"
+                      }`}
+                    >
+                      {products.length}
+                    </span>
+                  </button>
+
+                  {/* Individual Categories */}
+                  {categories.map((c) => {
+                    const count = products.filter((p) => p.category_id === c.id).length;
+                    const isSelected = selectedCategoryFilter === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setSelectedCategoryFilter(c.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
+                          isSelected
+                            ? "bg-primary text-on-primary shadow-sm"
+                            : "bg-surface hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-outline-variant"
+                        }`}
+                      >
+                        {c.icon && (
+                          <span className="material-symbols-outlined text-[14px]">
+                            {c.icon}
+                          </span>
+                        )}
+                        <span>{c.name}</span>
+                        <span
+                          className={`px-1.5 py-0.5 rounded-full text-[10px] leading-none ${
+                            isSelected
+                              ? "bg-white/20 text-white"
+                              : "bg-surface-container-high text-on-surface-variant"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-surface-container-lowest">
                   {filteredProducts.length > 0 ? (
                     filteredProducts.map((p, idx) => (
@@ -870,8 +936,32 @@ export default function AdminDashboard() {
                       </div>
                     ))
                   ) : (
-                    <div className="col-span-full py-12 text-center text-on-surface-variant bg-surface rounded-xl border border-dashed border-outline-variant">
-                      {prodSearchQuery.trim() !== "" ? "ไม่พบสินค้าที่ตรงกับการค้นหา" : "ไม่มีรายการสินค้าในระบบแอดมิน"}
+                    <div className="col-span-full py-12 px-4 text-center bg-surface rounded-xl border border-dashed border-outline-variant flex flex-col items-center justify-center">
+                      <span className="material-symbols-outlined text-outline text-4xl mb-2">
+                        inventory_2
+                      </span>
+                      <p className="text-on-surface font-bold text-body-lg">
+                        {prodSearchQuery.trim() !== "" || selectedCategoryFilter !== "all"
+                          ? "ไม่พบสินค้าที่ตรงกับเงื่อนไข"
+                          : "ยังไม่มีรายการสินค้าในระบบ"}
+                      </p>
+                      <p className="text-on-surface-variant text-label-md mt-0.5">
+                        {selectedCategoryFilter !== "all"
+                          ? "ไม่มีสินค้าในหมวดหมู่นี้ หรือลองเปลี่ยนคำค้นหา"
+                          : "กดปุ่ม 'เพิ่มสินค้าใหม่' ด้านบนเพื่อเริ่มต้นเพิ่มสินค้า"}
+                      </p>
+                      {(prodSearchQuery.trim() !== "" || selectedCategoryFilter !== "all") && (
+                        <button
+                          onClick={() => {
+                            setProdSearchQuery("");
+                            setSelectedCategoryFilter("all");
+                          }}
+                          className="mt-4 px-4 py-2 rounded-full border border-outline-variant bg-surface hover:bg-surface-container text-primary font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">filter_alt_off</span>
+                          ล้างตัวกรองทั้งหมด
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
