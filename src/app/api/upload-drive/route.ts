@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const APPS_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL!;
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
+const APPS_SCRIPT_URL =
+  process.env.GOOGLE_APPS_SCRIPT_URL ||
+  "https://script.google.com/macros/s/AKfycbyMM8YNFPG_TXxgpI9phdHPce8olh8whvSBfpEIcaBQXpURSqhQk3PBMbFSH49KBWo63g/exec";
 
 const BROWSER_HEADERS = {
   "User-Agent":

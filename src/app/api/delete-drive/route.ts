@@ -1,26 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const APPS_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL!;
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
+const APPS_SCRIPT_URL =
+  process.env.GOOGLE_APPS_SCRIPT_URL ||
+  "https://script.google.com/macros/s/AKfycbyMM8YNFPG_TXxgpI9phdHPce8olh8whvSBfpEIcaBQXpURSqhQk3PBMbFSH49KBWo63g/exec";
+
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+};
 
 function extractFileId(input: string): string | null {
   if (!input) return null;
-  // If it's already just an ID
   if (/^[a-zA-Z0-9_-]{25,}$/.test(input.trim())) {
     return input.trim();
   }
-  // If it's /api/drive-image/FILE_ID
   const pathProxyMatch = input.match(/\/api\/drive-image\/([a-zA-Z0-9_-]+)/);
   if (pathProxyMatch && pathProxyMatch[1]) return pathProxyMatch[1];
 
-  // If it's /api/drive-image?id=FILE_ID
   const queryProxyMatch = input.match(/\/api\/drive-image\?id=([a-zA-Z0-9_-]+)/);
   if (queryProxyMatch && queryProxyMatch[1]) return queryProxyMatch[1];
 
-  // If it's lh5/lh3 googleusercontent URL
   const lhMatch = input.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
   if (lhMatch && lhMatch[1]) return lhMatch[1];
 
-  // If it's drive.google.com/file/d/FILE_ID or /thumbnail?id=FILE_ID
   const driveFileMatch = input.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (driveFileMatch && driveFileMatch[1]) return driveFileMatch[1];
 
@@ -30,23 +38,22 @@ function extractFileId(input: string): string | null {
   return null;
 }
 
-import { execFile } from "child_process";
-import { promisify } from "util";
-
-const exec = promisify(execFile);
-
 async function deleteFromAppsScript(fileId: string): Promise<boolean> {
   try {
     const url = `${APPS_SCRIPT_URL}?id=${encodeURIComponent(fileId)}&action=delete`;
-    const { stdout } = await exec("curl", [
-      "-s",
-      "-L",
-      "-A",
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-      url,
-    ]);
+    const res = await fetch(url, {
+      method: "GET",
+      headers: BROWSER_HEADERS,
+      redirect: "follow",
+    });
 
-    const json = JSON.parse(stdout);
+    if (!res.ok) {
+      console.error("[DeleteDrive] Script returned status:", res.status, "for fileId:", fileId);
+      return false;
+    }
+
+    const text = await res.text();
+    const json = JSON.parse(text);
     console.log("[DeleteDrive] Result for fileId", fileId, ":", json);
     return !!json.success;
   } catch (err: any) {
